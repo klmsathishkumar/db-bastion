@@ -1,0 +1,8 @@
+{
+    "ENDPOINT": "tracking-service-qat.c2d5htxcqrdu.us-east-1.rds.amazonaws.com",
+    "PORT":"5432",
+    "USER":"fkadmin",
+    "REGION":"us-east-1",
+    "DBNAME":"load_service_qat",
+    "TOKEN" : "*******"
+}
