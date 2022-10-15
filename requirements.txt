@@ -2,3 +2,5 @@ boto3
 psycopg2
 json
 pprint
+string
+random
