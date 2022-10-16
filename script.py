@@ -19,34 +19,48 @@ username = "***********.s@fourkites.com" # Dynamic field - Set it to the user em
 password = pass_generator() # Generate it randomly with upper, lower, number characters
 
 # Step 1 - Add the security group of Bastion host EC2 instance in inbound rules of the database security group
-bastion_sg = "sg-080ded0c2ce0f9093" # Change it to Prod DB Bastion
+ec2 = boto3.client('ec2')
+sg_list = []
 
-port_range_start = 5432
-port_range_end = 5432
-protocol = "tcp"
+# Params
+bastion_sg = "sg-041b9bda37b6482aa" # Change to Prod DB SG ID
+rds_sg = "sg-09beea780597183ce" # Dynamic Field - Change it to the SG of the RDS instance
 
-ec2 = boto3.resource('ec2')
-security_group = ec2.SecurityGroup(bastion_sg)
+# Check already present rules in the rds security group
+response = ec2.describe_security_groups(GroupIds=[rds_sg])
 
-rds_sg = "sg-02c6e6b584c813387" # Dynamic Field - Change it to the SG of the RDS instance
-description = "prod-db-bastion-sg"
+for i in range(len(response["SecurityGroups"][0]["IpPermissions"][0]["UserIdGroupPairs"])):
+    sg_list.append(response["SecurityGroups"][0]["IpPermissions"][0]["UserIdGroupPairs"][i]["GroupId"])
 
-security_group.authorize_ingress(
-    DryRun=False,
-    IpPermissions=[
-        {
-            'FromPort': port_range_start,
-            'ToPort': port_range_end,
-            'IpProtocol': protocol,
-            'UserIdGroupPairs': [
-                {
-                    'GroupId': rds_sg,
-                },
-            ],
-        }
-    ]
-)
-print("Step 1 Completed! SG {0} is added in inbound rules of DB SG {1}".format(bastion_sg, rds_sg))
+# If the bastion host SG isn't available, creating one
+if bastion_sg not in sg_list:
+    port_range_start = 5432
+    port_range_end = 5432
+    protocol = "tcp"
+
+    security_group = ec2.SecurityGroup(rds_sg)
+    
+    description = "prod-db-bastion-sg"
+
+    security_group.authorize_ingress(
+        DryRun=False,
+        IpPermissions=[
+            {
+                'FromPort': port_range_start,
+                'ToPort': port_range_end,
+                'IpProtocol': protocol,
+                'UserIdGroupPairs': [
+                    {
+                        'GroupId': bastion_sg,
+                        'Description':description
+                    },
+                ],
+            }
+        ]
+    )
+    print("Step 1 Completed! SG {0} is added in inbound rules of DB SG {1}".format(bastion_sg, rds_sg))
+else:
+    print("Already {0} is added in the inbound rules of DB {1} SG".format(bastion_sg,rds_sg))
 
 # Step 2 - Create a user in the required database
 # CREATE ROLE "ayrdrie.palmer@fourkites.com" WITH LOGIN PASSWORD 'DBjR045Y30yO' NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE NOREPLICATION VALID UNTIL 'infinity';
@@ -108,12 +122,25 @@ except Exception as e:
 
 # Step 3 - Add db-bastion-ssm-access policy with this instance id - i-0192fd90c8c2d8b6e for the user in prod
 iam = boto3.client('iam')
+users_list = []
+
+# Params
 groupname = 'test1' # Create a user group with policy (SSM access for the bastion instance)
-response = iam.add_user_to_group(
-    GroupName = groupname,
-    UserName = username
-)
-print(response)
-print("Step 3 Completed. Added {0} to group {1}".format(username,groupname))
+response = iam.get_group(GroupName=groupname)
+
+# getting all users in the group to check whether is the user already there in the iam user group
+for i in range(len(response["Users"])):
+    users_list.append(response["Users"][i]["UserName"])
+
+# if the user not available, adding them
+if username not in users_list:
+    response = iam.add_user_to_group(
+        GroupName = groupname,
+        UserName = username
+    )
+    print("Step 3 Completed. Added {0} to group {1}".format(username,groupname))
+else:
+    print("Already {0} have the access to group {1}".format(username,groupname))
+
 
 print("Great!! Now the user can acces the DB via SSM. Here are the user credentials \nUsername - {0}\nPassword - {1}".format(username,password))
