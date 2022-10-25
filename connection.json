@@ -1,11 +1,15 @@
 {
-    "ENDPOINT": "tracking-api.c8wegmzjhalh.us-east-1.rds.amazonaws.com",
-    "ADMIN_USERNAME":"fkadmin",
-    "ADMIN_PASSWORD" : "e6f2d70311585c",
-    "USERNAME":"rishi@fourkites.com",
-    "RDS_SG":"sg-dfc0abb8",
-    "GROUPNAME":"Prod-DB-Bastion",
+    "ENDPOINT": "************.us-east-1.rds.amazonaws.com",
+    "ADMIN_USERNAME":"**********",
+    "ADMIN_PASSWORD" : "*******",
+    "USERNAME":"*******@fourkites.com",
+    "RDS_SG":"********",
+    "GROUPNAME":"********",
     "PORT":"5432",
     "REGION":"us-east-1",
-    "DBNAME":"postgres"
+    "DBNAME":"*********"
 }
+
+
+
+
